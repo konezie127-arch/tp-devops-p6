@@ -13,3 +13,5 @@ __pycache__/
 
 # Inventaire genere
 config/ansible/inventory.ini
+
+tfplan
