@@ -78,6 +78,12 @@ resource "aws_instance" "this" {
     http_endpoint = "enabled"
     http_tokens   = "required" # IMDSv2 uniquement
   }
+  dynamic "credit_specification" {
+    for_each = startswith(var.size, "t") ? [1] : []
+    content {
+      cpu_credits = "standard"
+    }
+  }
 
   root_block_device {
     volume_size           = var.disk_size_gb
