@@ -30,6 +30,6 @@ docker run --rm -p 8000:8000 tasks-api:local
 - [x] Étape 1 : application + tests + Dockerfile
 - [x] Étape 2 : CI GitHub Actions (tests, build, push GHCR)
 - [x] Étape 3 : Compose + Nginx
-- [ ] Étape 4 : Terraform, module AWS (fournisseur n°1) puis un second fournisseur
+- [ ] Étape 4 : Terraform, module AWS (eu-north-1, t3.micro) puis un second fournisseur
 - [ ] Étape 5 : Ansible
 - [ ] Étape 6 : CD, healthcheck, rollback

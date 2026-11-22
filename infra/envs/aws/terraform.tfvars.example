@@ -1,0 +1,4 @@
+# Copiez ce fichier en terraform.tfvars (ignore par Git) pour personnaliser.
+# region           = "eu-north-1"
+# size             = "t3.micro"
+# ssh_allowed_cidr = "A.B.C.D/32"   # votre IP publique, pour limiter l'acces SSH

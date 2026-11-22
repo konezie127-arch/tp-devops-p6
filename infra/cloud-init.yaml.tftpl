@@ -1,0 +1,20 @@
+#cloud-config
+# Amorcage commun a tous les fournisseurs : meme utilisateur, meme cle, meme socle.
+hostname: ${hostname}
+timezone: UTC
+
+users:
+  - default
+  - name: ${ssh_user}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+packages:
+  - python3
+  - curl
+  - ca-certificates
