@@ -1,0 +1,71 @@
+name: CD
+
+# Deploiement sur la VM via Ansible (independant du fournisseur cloud :
+# seuls SSH_HOST, SSH_USER et SSH_KEY changent d'un cloud a l'autre).
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "SHA du commit a deployer (vide = dernier commit de la branche)"
+        required: false
+        default: ""
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Un seul deploiement a la fois
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Manuel : toujours. Automatique apres CI : seulement si CI vert ET variable AUTO_DEPLOY=true
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && vars.AUTO_DEPLOY == 'true')
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_CONFIG: ${{ github.workspace }}/config/ansible/ansible.cfg
+      ANSIBLE_FORCE_COLOR: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Determiner la version a deployer
+        id: ver
+        run: |
+          TAG="${{ github.event.inputs.release_tag }}"
+          if [ -z "$TAG" ]; then TAG="${{ github.event.workflow_run.head_sha || github.sha }}"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Version a deployer : $TAG"
+
+      - name: Installer Ansible
+        run: pip install ansible-core
+
+      - name: Preparer la cle SSH et l'inventaire
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/p6_key
+          chmod 600 ~/.ssh/p6_key
+          printf '[web]\n%s ansible_user=%s\n' "$SSH_HOST" "$SSH_USER" > config/ansible/inventory.ini
+
+      - name: Tester la connexion
+        run: ansible web -m ping
+
+      - name: Deployer (healthcheck + rollback automatique)
+        run: ansible-playbook config/ansible/site.yml -e release_tag=${{ steps.ver.outputs.tag }}
+
+      - name: Verifier la version en ligne
+        run: |
+          curl -fsS "http://${{ secrets.SSH_HOST }}/version"
+          echo

@@ -32,7 +32,7 @@ docker run --rm -p 8000:8000 tasks-api:local
 - [x] Étape 3 : Compose + Nginx
 - [ ] Étape 4 : Terraform, module AWS (eu-north-1, t3.micro) puis un second fournisseur
 - [ ] Étape 5 : Ansible (rôles docker + app, déploiement avec healthcheck et rollback)
-- [ ] Étape 6 : CD, healthcheck, rollback
+- [ ] Étape 6 : CD GitHub Actions (cd.yml), healthcheck, rollback
 
 ## Ansible (depuis WSL Ubuntu, à la racine du dépôt)
 ```bash
@@ -42,3 +42,8 @@ ansible-playbook config/ansible/site.yml                    # configure + déplo
 ansible-playbook config/ansible/site.yml -e release_tag=<sha>   # déploie une version précise
 ansible-playbook config/ansible/rollback.yml                # retour à la version précédente
 ```
+
+## CD GitHub Actions
+Secrets requis (Settings > Secrets and variables > Actions) : `SSH_HOST`, `SSH_USER`, `SSH_KEY`.
+Variable optionnelle `AUTO_DEPLOY=true` pour déployer automatiquement après chaque CI vert.
+Lancement manuel : `gh workflow run CD -f release_tag=<sha>`
