@@ -14,7 +14,10 @@ param(
   [string]$Env = "aws"
 )
 
-$ErrorActionPreference = "Stop"
+# Avec "Stop", PowerShell 5.1 transforme toute ligne ecrite sur stderr par un programme
+# natif (ex. l'avertissement de ssh) en erreur fatale. On reste en "Continue" et on
+# verifie explicitement les codes de sortie (Exec) et les erreurs de cmdlets (-ErrorAction Stop).
+$ErrorActionPreference = "Continue"
 $tfdir  = "infra/envs/$Env"
 $key    = Join-Path $HOME ".ssh/p6_key"
 $times  = @()
@@ -59,7 +62,7 @@ Step "3. inventaire Ansible" {
 Step "4. attente SSH + fin de cloud-init" {
   $ok = $false
   $sshOpts = @("-i", $key, "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=NUL",
-               "-o", "BatchMode=yes", "-o", "ConnectTimeout=5")
+               "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-o", "LogLevel=ERROR")
   for ($i = 1; $i -le 40; $i++) {
     ssh @sshOpts "deploy@$($global:ip)" "cloud-init status --wait" *> $null
     if ($LASTEXITCODE -eq 0) { $ok = $true; break }
@@ -73,18 +76,23 @@ Step "5. mise a jour du secret SSH_HOST" {
 }
 
 Step "6. deploiement par le CD GitHub Actions" {
+  $before = (gh run list --workflow cd.yml --limit 1 --json databaseId --jq ".[0].databaseId" 2>$null | Out-String).Trim()
   Exec gh @("workflow", "run", "CD", "-f", "release_tag=$Tag")
-  Start-Sleep -Seconds 8
-  $id = (gh run list --workflow cd.yml --limit 1 --json databaseId --jq ".[0].databaseId").Trim()
+  $id = $before
+  for ($i = 1; $i -le 30 -and $id -eq $before; $i++) {
+    Start-Sleep -Seconds 2
+    $id = (gh run list --workflow cd.yml --limit 1 --json databaseId --jq ".[0].databaseId" 2>$null | Out-String).Trim()
+  }
+  if ($id -eq $before) { throw "Le run CD n'est pas apparu apres 60 s" }
   Write-Host "    run CD : $id"
   Exec gh @("run", "watch", $id, "--exit-status")
 }
 
 Step "7. verification de la version en ligne" {
-  $v = (Invoke-RestMethod "http://$($global:ip)/version").version
+  $v = (Invoke-RestMethod "http://$($global:ip)/version" -ErrorAction Stop).version
   Write-Host "    /version -> $v"
   if ($v -ne $Tag) { throw "Version en ligne ($v) differente de la version attendue ($Tag)" }
-  $h = (Invoke-RestMethod "http://$($global:ip)/health").status
+  $h = (Invoke-RestMethod "http://$($global:ip)/health" -ErrorAction Stop).status
   if ($h -ne "ok") { throw "/health ne repond pas ok" }
 }
 

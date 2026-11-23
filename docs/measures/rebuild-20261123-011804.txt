@@ -1,0 +1,16 @@
+Reconstruction complete - 2026-11-23T01:18:04
+Fournisseur : aws | Version deployee : f6f4a6f1dde2084102842a31e6a1c17a12a07f42 | IP : 13.63.53.125
+
+Etape                                   Secondes
+-----                                   --------
+1. terraform destroy                        35,3
+2. terraform apply (VM, pare-feu, cle)      35,2
+3. inventaire Ansible                        4,1
+4. attente SSH + fin de cloud-init         152,8
+5. mise a jour du secret SSH_HOST            1,7
+6. deploiement par le CD GitHub Actions    177,1
+7. verification de la version en ligne       0,6
+
+
+
+TOTAL : 407 s
