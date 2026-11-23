@@ -47,3 +47,6 @@ ansible-playbook config/ansible/rollback.yml                # retour à la versi
 Secrets requis (Settings > Secrets and variables > Actions) : `SSH_HOST`, `SSH_USER`, `SSH_KEY`.
 Variable optionnelle `AUTO_DEPLOY=true` pour déployer automatiquement après chaque CI vert.
 Lancement manuel : `gh workflow run CD -f release_tag=<sha>`
+
+## Reconstruction complète (extension du Projet 6)
+`.\scripts\rebuild.ps1 -Tag <sha>` : destroy, apply, inventaire, attente cloud-init, secret SSH_HOST, CD, vérification. Voir `docs/REBUILD.md`.
