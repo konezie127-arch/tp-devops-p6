@@ -1,0 +1,7 @@
+# Version a deployer. Surcharge : -e release_tag=<sha-du-commit>
+release_tag: latest
+
+# Controle de sante apres deploiement
+health_url: http://127.0.0.1/health
+health_retries: 15
+health_delay: 4

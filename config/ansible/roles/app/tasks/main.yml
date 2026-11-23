@@ -1,0 +1,25 @@
+---
+- name: Creer l'arborescence de deploiement
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ app_dir }}"
+    - "{{ app_dir }}/deploy"
+    - "{{ app_dir }}/config/nginx"
+
+- name: Copier le fichier Compose
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../deploy/docker-compose.yml"
+    dest: "{{ app_dir }}/deploy/docker-compose.yml"
+    mode: "0644"
+
+- name: Copier la configuration Nginx
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../config/nginx/default.conf"
+    dest: "{{ app_dir }}/config/nginx/default.conf"
+    mode: "0644"
+
+- name: Deployer la version demandee
+  ansible.builtin.include_tasks: deploy.yml

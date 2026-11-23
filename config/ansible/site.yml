@@ -1,0 +1,7 @@
+---
+- name: Configurer la VM et deployer l'application
+  hosts: web
+  become: true
+  roles:
+    - docker
+    - app

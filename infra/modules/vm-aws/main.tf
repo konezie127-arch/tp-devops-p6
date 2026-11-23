@@ -78,6 +78,8 @@ resource "aws_instance" "this" {
     http_endpoint = "enabled"
     http_tokens   = "required" # IMDSv2 uniquement
   }
+
+  # t3 = "unlimited" par defaut : on force "standard" pour eviter un surcout
   dynamic "credit_specification" {
     for_each = startswith(var.size, "t") ? [1] : []
     content {

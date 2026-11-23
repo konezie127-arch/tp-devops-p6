@@ -31,5 +31,14 @@ docker run --rm -p 8000:8000 tasks-api:local
 - [x] Étape 2 : CI GitHub Actions (tests, build, push GHCR)
 - [x] Étape 3 : Compose + Nginx
 - [ ] Étape 4 : Terraform, module AWS (eu-north-1, t3.micro) puis un second fournisseur
-- [ ] Étape 5 : Ansible
+- [ ] Étape 5 : Ansible (rôles docker + app, déploiement avec healthcheck et rollback)
 - [ ] Étape 6 : CD, healthcheck, rollback
+
+## Ansible (depuis WSL Ubuntu, à la racine du dépôt)
+```bash
+export ANSIBLE_CONFIG=$PWD/config/ansible/ansible.cfg
+ansible web -m ping
+ansible-playbook config/ansible/site.yml                    # configure + déploie 'latest'
+ansible-playbook config/ansible/site.yml -e release_tag=<sha>   # déploie une version précise
+ansible-playbook config/ansible/rollback.yml                # retour à la version précédente
+```

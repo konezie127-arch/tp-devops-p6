@@ -1,0 +1,23 @@
+---
+# Revient a la version precedente (celle enregistree dans .previous_tag)
+- name: Rollback vers la version precedente
+  hosts: web
+  become: true
+  tasks:
+    - name: Lire la version precedente
+      ansible.builtin.slurp:
+        src: "{{ app_dir }}/.previous_tag"
+      register: prev_raw
+      failed_when: false
+
+    - name: Refuser si aucune version precedente
+      ansible.builtin.fail:
+        msg: "Aucune version precedente enregistree : rollback impossible."
+      when: prev_raw.content is not defined or (prev_raw.content | b64decode | trim) == ''
+
+    - name: Deployer la version precedente
+      ansible.builtin.include_role:
+        name: app
+        tasks_from: deploy
+      vars:
+        release_tag: "{{ prev_raw.content | b64decode | trim }}"

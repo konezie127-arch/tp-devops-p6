@@ -1,0 +1,5 @@
+# Image publiee par le pipeline CI sur GHCR (tout en minuscules)
+app_image: ghcr.io/konezie127-arch/tp-devops-p6/tasks-api
+
+# Dossier de deploiement sur la VM
+app_dir: /opt/p6

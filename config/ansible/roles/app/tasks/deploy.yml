@@ -1,0 +1,107 @@
+---
+# Deploiement avec controle de sante et rollback automatique.
+# Variable attendue : release_tag
+
+- name: Lire la version actuellement deployee
+  ansible.builtin.slurp:
+    src: "{{ app_dir }}/.current_tag"
+  register: cur_raw
+  failed_when: false
+
+- name: Lire la version precedente enregistree
+  ansible.builtin.slurp:
+    src: "{{ app_dir }}/.previous_tag"
+  register: prev_raw
+  failed_when: false
+
+- name: Calculer les versions
+  ansible.builtin.set_fact:
+    current_tag: "{{ (cur_raw.content | b64decode | trim) if cur_raw.content is defined else '' }}"
+    saved_previous: "{{ (prev_raw.content | b64decode | trim) if prev_raw.content is defined else '' }}"
+
+- name: Deployer et verifier la sante
+  block:
+    - name: Ecrire le fichier .env (image et version)
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/deploy/.env"
+        content: |
+          IMAGE={{ app_image }}
+          TAG={{ release_tag }}
+        mode: "0644"
+
+    - name: Telecharger l'image
+      ansible.builtin.command:
+        cmd: docker compose pull
+        chdir: "{{ app_dir }}/deploy"
+      changed_when: true
+
+    - name: Demarrer ou mettre a jour les services
+      ansible.builtin.command:
+        cmd: docker compose up -d --remove-orphans
+        chdir: "{{ app_dir }}/deploy"
+      changed_when: true
+
+    - name: Attendre que le service reponde (controle de sante)
+      ansible.builtin.uri:
+        url: "{{ health_url }}"
+        status_code: 200
+      register: health
+      retries: "{{ health_retries }}"
+      delay: "{{ health_delay }}"
+      until: health.status == 200
+
+    - name: Enregistrer la version precedente
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/.previous_tag"
+        content: "{{ current_tag if current_tag != release_tag else saved_previous }}"
+        mode: "0644"
+      when: (current_tag if current_tag != release_tag else saved_previous) != ''
+
+    - name: Enregistrer la version actuelle
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/.current_tag"
+        content: "{{ release_tag }}"
+        mode: "0644"
+
+    - name: Afficher la version en ligne
+      ansible.builtin.uri:
+        url: http://127.0.0.1/version
+        return_content: true
+      register: version_out
+
+    - name: Resultat
+      ansible.builtin.debug:
+        msg: "Deploye : {{ release_tag }} | /version -> {{ version_out.json }}"
+
+  rescue:
+    - name: Retour a la version precedente (rollback automatique)
+      when: current_tag != '' and current_tag != release_tag
+      block:
+        - name: Remettre l'ancien .env
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/deploy/.env"
+            content: |
+              IMAGE={{ app_image }}
+              TAG={{ current_tag }}
+            mode: "0644"
+
+        - name: Redemarrer l'ancienne version
+          ansible.builtin.command:
+            cmd: docker compose up -d --remove-orphans
+            chdir: "{{ app_dir }}/deploy"
+          changed_when: true
+
+        - name: Verifier que l'ancienne version repond
+          ansible.builtin.uri:
+            url: "{{ health_url }}"
+            status_code: 200
+          register: health_back
+          retries: "{{ health_retries }}"
+          delay: "{{ health_delay }}"
+          until: health_back.status == 200
+
+    - name: Signaler l'echec (le service a ete restaure si possible)
+      ansible.builtin.fail:
+        msg: >-
+          Deploiement de {{ release_tag }} echoue.
+          {{ 'Rollback effectue vers ' ~ current_tag ~ '.' if (current_tag != '' and current_tag != release_tag) else 'Aucune version precedente a restaurer.' }}
