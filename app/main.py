@@ -28,6 +28,13 @@ def version():
     return {"version": APP_VERSION}
 
 
+@app.get("/stats")
+def stats():
+    """Nouveaute v2 : statistiques sur les taches."""
+    done = sum(1 for t in tasks.values() if t["done"])
+    return {"total": len(tasks), "done": done, "pending": len(tasks) - done}
+
+
 @app.get("/tasks")
 def list_tasks():
     return list(tasks.values())
