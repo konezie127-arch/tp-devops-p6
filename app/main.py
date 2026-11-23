@@ -1,19 +1,11 @@
 """API de gestion de tâches - application de démonstration du Projet 6."""
 import os
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # REGRESSION VOLONTAIRE (demo rollback) : le demarrage echoue en production
-    raise RuntimeError("v3 volontairement cassee")
-    yield
-
-
-app = FastAPI(title="Tasks API", version=APP_VERSION, lifespan=lifespan)
+app = FastAPI(title="Tasks API", version=APP_VERSION)
 
 tasks: dict[int, dict] = {}
 _next_id = 1
