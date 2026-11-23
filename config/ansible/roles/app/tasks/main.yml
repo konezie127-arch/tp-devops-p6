@@ -20,6 +20,7 @@
     src: "{{ playbook_dir }}/../../config/nginx/default.conf"
     dest: "{{ app_dir }}/config/nginx/default.conf"
     mode: "0644"
+  register: nginx_conf
 
 - name: Deployer la version demandee
   ansible.builtin.include_tasks: deploy.yml
