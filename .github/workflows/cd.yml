@@ -55,7 +55,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/p6_key
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/p6_key
           chmod 600 ~/.ssh/p6_key
           printf '[web]\n%s ansible_user=%s\n' "$SSH_HOST" "$SSH_USER" > config/ansible/inventory.ini
 
